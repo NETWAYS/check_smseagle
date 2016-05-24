@@ -18,7 +18,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-import decimal
 import ssl
 import sys
 from optparse import OptionParser
@@ -96,7 +95,9 @@ if __name__ == '__main__':
     if not url:
         fail('required option -u missing')
 
-    if opts['crit'] > opts['warn']:
+    warn = opts['warn']
+    crit = opts['crit']
+    if crit > warn:
         fail('the critical threshold must not be greater than the warning one')
 
     if hasattr(ssl, '_create_unverified_context'):
@@ -114,16 +115,13 @@ if __name__ == '__main__':
         return_check_status(3, "Couldn't fetch the GSM signal strength because of an error: " + format_exception(e))
 
     try:
-        strength = decimal.Decimal(response.strip())
-    except decimal.InvalidOperation:
+        strength = int(response.strip())
+    except ValueError:
         return_check_status(3, "Couldn't evaluate the GSM signal strength"
                                " because of an unexpected response: " + repr(response))
 
-    if strength == decimal.Decimal('-1'):
+    if strength == -1:
         return_check_status(2, 'GSM modem is disconnected from GSM network')
-
-    warn = decimal.Decimal(opts['warn'])
-    crit = decimal.Decimal(opts['crit'])
 
     if strength < crit:
         icinga_stat = 2
