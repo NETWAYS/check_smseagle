@@ -130,6 +130,6 @@ if __name__ == '__main__':
 
     return_check_status(
         icinga_stat,
-        'GSM signal strength: {0:f}%'.format(strength),
-        {'gsm_signal_strenght': '{0:f}%;{1:f}:;{2:f}:;;'.format(strength, warn, crit)}
+        'GSM signal strength: {0}%'.format(strength),
+        {'gsm_signal_strenght': '{0}%;{1}:;{2}:;;'.format(strength, warn, crit)}
     )
