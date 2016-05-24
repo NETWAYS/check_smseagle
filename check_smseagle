@@ -79,9 +79,9 @@ if __name__ == '__main__':
     parser.add_option('-P', '--pass', metavar='PASSWORD')
     parser.add_option('-M', '--modem', metavar='MODEM_NO')
     parser.add_option('-w', '--warn', default=10, type='int', metavar='PERCENT',
-                      help='warning if the GSM signal strenght is less than PERCENT %')
+                      help='warning if the GSM signal strength is less than PERCENT %')
     parser.add_option('-c', '--crit', default=5, type='int', metavar='PERCENT',
-                      help='critical if the GSM signal strenght is less than PERCENT %')
+                      help='critical if the GSM signal strength is less than PERCENT %')
     try:
         opts, args = parser.parse_args()
     except SystemExit as e:
@@ -111,27 +111,27 @@ if __name__ == '__main__':
             ) if opts[opt] is not None
         ])).read()
     except Exception as e:
-        return_check_status(3, "Couldn't fetch the GSM signal strenght because of an error: " + format_exception(e))
+        return_check_status(3, "Couldn't fetch the GSM signal strength because of an error: " + format_exception(e))
 
     try:
-        strenght = decimal.Decimal(response.strip())
+        strength = decimal.Decimal(response.strip())
     except decimal.InvalidOperation:
-        return_check_status(3, "Couldn't evaluate the GSM signal strenght"
+        return_check_status(3, "Couldn't evaluate the GSM signal strength"
                                " because of an unexpected response: " + repr(response))
 
-    if strenght == decimal.Decimal('-1'):
+    if strength == decimal.Decimal('-1'):
         return_check_status(2, 'GSM modem is disconnected from GSM network')
 
     warn = decimal.Decimal(opts['warn'])
     crit = decimal.Decimal(opts['crit'])
 
-    if strenght < crit:
+    if strength < crit:
         icinga_stat = 2
     else:
-        icinga_stat = 1 if strenght < warn else 0
+        icinga_stat = 1 if strength < warn else 0
 
     return_check_status(
         icinga_stat,
-        'GSM signal strenght: {0:f}%'.format(strenght),
-        {'gsm_signal_strenght': '{0:f}%;{1:f}:;{2:f}:;;'.format(strenght, warn, crit)}
+        'GSM signal strength: {0:f}%'.format(strength),
+        {'gsm_signal_strenght': '{0:f}%;{1:f}:;{2:f}:;;'.format(strength, warn, crit)}
     )
