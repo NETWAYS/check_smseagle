@@ -1,0 +1,137 @@
+#!/usr/bin/python2
+
+# Copyright (C) 2016  NETWAYS GmbH, https://netways.de
+#
+# Author: Alexander A. Klimov <alexander.klimov@netways.de>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
+import decimal
+import ssl
+import sys
+from optparse import OptionParser
+from urllib import urlencode
+from urllib2 import urlopen
+
+
+def format_exception(e):
+    """
+    Return a printable representation of an exception
+
+    :param e:   The exception to format
+    :type e:    BaseException
+    :rtype:     str
+    """
+
+    t = type(e)
+    return '{0}.{1}: {2!s}'.format(t.__module__, t.__name__, e)
+
+
+def return_check_status(code, desc, perfdata=None):
+    """
+    Print check result and return the given code to the OS
+
+    :param code:        Check result status code, must be >= 0 and <= 3
+    :type code:         int
+    :param desc:        Check result description
+    :type desc:         str
+    :param perfdata:    Performance data, e.g.:  {'gsm_signal_strenght': '30%;10:;5:;;'}
+    :type perfdata:     dict
+    """
+
+    print 'SMSEAGLE {0}: {1}{2}'.format(
+        ('OK', 'WARNING', 'CRITICAL', 'UNKNOWN')[code],
+        desc,
+        ' |' + ' '.join((
+            "'{0}'={1}".format(label, pd) for (label, pd) in perfdata.iteritems()
+        )) if perfdata else ''
+    )
+    sys.exit(code)
+
+
+def fail(msg):
+    """
+    Print msg to stderr and exit
+
+    :type msg: str
+    """
+
+    print >>sys.stderr, 'error:', msg
+    sys.exit(3)
+
+
+if __name__ == '__main__':
+    parser = OptionParser(prog='check_smseagle', version='0.0')
+    parser.add_option('-u', '--url')
+    parser.add_option('-U', '--user', metavar='USERNAME')
+    parser.add_option('-P', '--pass', metavar='PASSWORD')
+    parser.add_option('-M', '--modem', metavar='MODEM_NO')
+    parser.add_option('-w', '--warn', default=10, type='int', metavar='PERCENT',
+                      help='warning if the GSM signal strenght is less than PERCENT %')
+    parser.add_option('-c', '--crit', default=5, type='int', metavar='PERCENT',
+                      help='critical if the GSM signal strenght is less than PERCENT %')
+    try:
+        opts, args = parser.parse_args()
+    except SystemExit as e:
+        # In case of incorrect usage of the CLI, the OptionParser() exits
+        # with code 2 which isn't suitable for Icinga plugins (in that case).
+        e.code = 3
+        raise
+
+    opts = vars(opts)
+
+    url = opts['url']
+    if not url:
+        fail('required option -u missing')
+
+    if opts['crit'] > opts['warn']:
+        fail('the critical threshold must not be greater than the warning one')
+
+    if hasattr(ssl, '_create_unverified_context'):
+        # Don't verify SSL certificates by default
+        # to keep HTTPS connections working in Python 2.7+.
+        ssl._create_default_https_context = ssl._create_unverified_context
+
+    try:
+        response = urlopen(url.rstrip('/') + '/index.php/http_api/get_gsmsignal?' + urlencode([
+            (url_param, opts[opt]) for (opt, url_param) in (
+                ('user', 'login'), ('pass', 'pass'), ('modem', 'modem_no')
+            ) if opts[opt] is not None
+        ])).read()
+    except Exception as e:
+        return_check_status(3, "Couldn't fetch the GSM signal strenght because of an error: " + format_exception(e))
+
+    try:
+        strenght = decimal.Decimal(response.strip())
+    except decimal.InvalidOperation:
+        return_check_status(3, "Couldn't evaluate the GSM signal strenght"
+                               " because of an unexpected response: " + repr(response))
+
+    if strenght == decimal.Decimal('-1'):
+        return_check_status(2, 'GSM modem is disconnected from GSM network')
+
+    warn = decimal.Decimal(opts['warn'])
+    crit = decimal.Decimal(opts['crit'])
+
+    if strenght < crit:
+        icinga_stat = 2
+    else:
+        icinga_stat = 1 if strenght < warn else 0
+
+    return_check_status(
+        icinga_stat,
+        'GSM signal strenght: {0:f}%'.format(strenght),
+        {'gsm_signal_strenght': '{0:f}%;{1:f}:;{2:f}:;;'.format(strenght, warn, crit)}
+    )
