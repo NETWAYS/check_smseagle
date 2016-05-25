@@ -74,9 +74,9 @@ def fail(msg):
 if __name__ == '__main__':
     parser = OptionParser(prog='check_smseagle', version='0.0')
     parser.add_option('-u', '--url')
-    parser.add_option('-U', '--user', metavar='USERNAME')
+    parser.add_option('-U', '--user', metavar='USERNAME', dest='login')
     parser.add_option('-P', '--pass', metavar='PASSWORD')
-    parser.add_option('-M', '--modem', metavar='MODEM_NO')
+    parser.add_option('-M', '--modem', metavar='MODEM_NO', dest='modem_no')
     parser.add_option('-w', '--warn', default=10, type='int', metavar='PERCENT',
                       help='warning if the GSM signal strength is less than PERCENT %')
     parser.add_option('-c', '--crit', default=5, type='int', metavar='PERCENT',
@@ -107,9 +107,7 @@ if __name__ == '__main__':
 
     try:
         response = urlopen(url.rstrip('/') + '/index.php/http_api/get_gsmsignal?' + urlencode([
-            (url_param, opts[opt]) for (opt, url_param) in (
-                ('user', 'login'), ('pass', 'pass'), ('modem', 'modem_no')
-            ) if opts[opt] is not None
+            (opt, opts[opt]) for opt in ('login', 'pass', 'modem_no') if opts[opt] is not None
         ])).read()
     except Exception as e:
         return_check_status(3, "Couldn't fetch the GSM signal strength because of an error: " + format_exception(e))
