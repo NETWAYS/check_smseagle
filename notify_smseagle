@@ -1,0 +1,76 @@
+#!/usr/bin/python2
+
+# Copyright (C) 2016  NETWAYS GmbH, https://netways.de
+#
+# Author: Alexander A. Klimov <alexander.klimov@netways.de>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
+import json
+import ssl
+import sys
+from optparse import OptionParser
+from urllib2 import Request, urlopen
+
+
+def format_exception(e):
+    """
+    Return a printable representation of an exception
+
+    :param e:   The exception to format
+    :type e:    BaseException
+    :rtype:     str
+    """
+
+    t = type(e)
+    return str(e) if t is Exception else '{0}.{1}: {2!s}'.format(t.__module__, t.__name__, e)
+
+
+if __name__ == '__main__':
+    parser = OptionParser(prog='notify_smseagle', version='0.0')
+    parser.add_option('-u', '--url')
+    parser.add_option('-U', '--user', metavar='USERNAME', dest='login')
+    parser.add_option('-P', '--pass', metavar='PASSWORD')
+    parser.add_option('-t', '--to', metavar='RECIPIENT')
+    parser.add_option('-m', '--message')
+    opts, args = parser.parse_args()
+    opts = vars(opts)
+
+    url = opts['url']
+    if not url:
+        sys.exit('error: required option -u missing')
+
+    if hasattr(ssl, '_create_unverified_context'):
+        # Don't verify SSL certificates by default
+        # to keep HTTPS connections working in Python 2.7+.
+        ssl._create_default_https_context = ssl._create_unverified_context
+
+    try:
+        response = urlopen(Request(url.rstrip('/') + '/index.php/jsonrpc/sms', json.dumps({
+            u'method': u'sms.send_sms',
+            u'params': dict(((
+                opt.decode('utf-8', 'replace'), opts[opt].decode('utf-8', 'replace')
+            ) for opt in ('login', 'pass', 'to', 'message') if opts[opt] is not None))
+        }), {'Content-Type': 'application/json'})).read()
+
+        try:
+            result = json.loads(response.strip())[u'result']
+        except (ValueError, KeyError):
+            raise Exception('unexpected response: ' + repr(response))
+
+        if not result.startswith(u'OK;'):
+            raise Exception('unexpected result: ' + repr(result)[1:])
+    except Exception as e:
+        sys.exit("Couldn't send the message because of an error: " + format_exception(e))
