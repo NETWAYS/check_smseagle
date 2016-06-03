@@ -21,17 +21,23 @@
 import os
 import sys
 from cgi import FieldStorage
-from ConfigParser import NoSectionError, NoOptionError, SafeConfigParser
+from ConfigParser import NoSectionError, NoOptionError, RawConfigParser
 from itertools import cycle, izip
 from syslog import LOG_PID, openlog, syslog
 
 
-class ConfigParser(SafeConfigParser):
-    def get(self, section, option, raw=False, vars=None):
+class ConfigParser(RawConfigParser):
+    def get(self, section, option):
         try:
-            return SafeConfigParser.get(self, section, option, raw, vars)
+            return RawConfigParser.get(self, section, option)
         except (NoSectionError, NoOptionError):
             return None
+
+    def items(self, section):
+        try:
+            return RawConfigParser.items(self, section)
+        except NoSectionError:
+            return []
 
 
 class HTTP403(Exception):
@@ -69,7 +75,7 @@ try:
     raw_data = FieldStorage()
     data = dict(((k, raw_data.getfirst(k)) for k in raw_data.keys()))
 
-    apikey = cfg.get('security', 'apikey', True)
+    apikey = cfg.get('security', 'apikey')
     if apikey is not None:
         try:
             remote_apikey = data['apikey']
