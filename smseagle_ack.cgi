@@ -113,11 +113,11 @@ try:
         msg = data['text']
         rgx_opts = re.MULTILINE
         if re.search(cfg.get('pattern', 'ack') or r'\A\s*ACK\b', msg, rgx_opts):
-            m = re.search(cfg.get('pattern', 'host') or r'^\s*?Host:\s*?(.+)\s*?$', msg, rgx_opts)
+            m = re.search(cfg.get('pattern', 'host') or r'^\s*?Host:\s*(.+?)\s*$', msg, rgx_opts)
             if m:
                 host = m.group(1)
 
-                m = re.search(cfg.get('pattern', 'service') or r'^\s*?Service:\s*?(.+)\s*?$', msg, rgx_opts)
+                m = re.search(cfg.get('pattern', 'service') or r'^\s*?Service:\s*(.+?)\s*$', msg, rgx_opts)
                 if m:
                     icinga_cmd = 'ACKNOWLEDGE_SVC_PROBLEM;{0};{1}'.format(host, m.group(1))
                 else:
