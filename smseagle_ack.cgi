@@ -40,8 +40,16 @@ class ConfigParser(RawConfigParser):
             return []
 
 
-class HTTP403(Exception):
-    pass
+class HTTPError(Exception):
+    http_status = '500 Internal Server Error'
+
+
+class HTTP403(HTTPError):
+    http_status = '403 Forbidden'
+
+
+class HTTP422(HTTPError):
+    http_status = '422 Unprocessable Entity'
 
 
 def getenv(name, default=None):
@@ -86,10 +94,10 @@ try:
             raise HTTP403('Wrong apikey')
 
     # TODO: dispatch
-except HTTP403 as e:
+except HTTPError as e:
     msg = str(e)
-    print 'HTTP/1.0 403 Forbidden\nContent-Type: text/plain; charset=UTF-8\n' \
-          'Content-Length: {0}\n\n{1}'.format(len(msg), msg),
+    print 'HTTP/1.0 {0}\nContent-Type: text/plain; charset=UTF-8\n' \
+          'Content-Length: {1}\n\n{2}'.format(e.http_status, len(msg), msg),
 except Exception as e:
     print 'HTTP/1.0 500 Internal Server Error\nContent-Length: 0\n'
     t = type(e)
