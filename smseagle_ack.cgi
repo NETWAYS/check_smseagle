@@ -140,8 +140,8 @@ except HTTPError as e:
     print(end='HTTP/1.0 {0}\nContent-Type: text/plain; charset=UTF-8\n'
               'Content-Length: {1}\n\n{2}'.format(e.http_status, len(msg), msg))
 except Exception as e:
-    print('HTTP/1.0 500 Internal Server Error\nContent-Length: 0')
+    print('HTTP/1.0 500 Internal Server Error\nContent-Length: 0\n')
     t = type(e)
     syslog(str(e) if t is Exception else '{0}.{1}: {2!s}'.format(t.__module__, t.__name__, e))
 else:
-    print('HTTP/1.0 200 OK\nContent-Length: 0')
+    print('HTTP/1.0 200 OK\nContent-Length: 0\n')
