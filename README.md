@@ -45,3 +45,45 @@ To send an SMS you would use notify_smseagle like this:
 ```
 notify_smseagle -u http://192.168.144.120 -U jdoe -P 123456 -t +49123456789 -m nothingtoreadhere
 ```
+
+# smseagle_ack.cgi
+
+## About
+
+smseagle_ack.cgi is a CGI 1.1 script for the "callback url" function
+of an [SMSEagle](http://www.smseagle.eu/) device.
+It parses incoming SMSs and acknowledges host/service problems
+if an SMS requests that.
+
+## Requirements
+
+Python 2.6 or 2.7
+
+## Configuration
+
+The script reads its configuration from the file specified in the
+X_SMSEAGLE_ACK_CGI_CFG environment variable. Default: /etc/smseagle-ack-cgi.conf
+
+### Example
+
+```
+[security]
+apikey=123456
+verify-sender=1
+
+[contacts]
++49123456789=jdoe
+
+[icinga]
+cmd-pipe=/var/lib/icinga/rw/icinga.cmd
+```
+
+security.apikey requires the SMSEagle device to authenticate with that API key.
+
+If security.verify-sender is set to 1, only SMSs from the configured
+mobile numbers may acknowledge problems.
+
+If an acknowledging SMS' sender is configured in [contacts],
+the acknowledgement's author shall be the configured alias, not the number.
+
+icinga.cmd-pipe specifies the local command pipe to be used for acknowledging.
