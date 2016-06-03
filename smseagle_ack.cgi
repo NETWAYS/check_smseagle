@@ -21,11 +21,14 @@
 from __future__ import print_function
 
 import os
+import re
 import sys
 from cgi import FieldStorage
 from ConfigParser import NoSectionError, NoOptionError, RawConfigParser
+from datetime import datetime
 from itertools import cycle, izip
 from syslog import LOG_PID, openlog, syslog
+from time import time
 
 
 class ConfigParser(RawConfigParser):
@@ -95,7 +98,43 @@ try:
         if not safe_eq(apikey, remote_apikey):
             raise HTTP403('Wrong apikey')
 
-    # TODO: dispatch
+    for param in ('text', 'sender', 'timestamp'):
+        if param not in data:
+            raise HTTP422('Parameter {0} missing'.format(param))
+
+    contact = None
+    sender = data['sender']
+    for (number, alias) in cfg.items('contacts'):
+        if sender == number:
+            contact = alias
+            break
+
+    if not ((cfg.get('security', 'verify-sender') or '').strip() == '1' and contact is None):
+        msg = data['text']
+        rgx_opts = re.MULTILINE
+        if re.search(cfg.get('pattern', 'ack') or r'\A\s*ACK\b', msg, rgx_opts):
+            m = re.search(cfg.get('pattern', 'host') or r'^\s*?Host:\s*?(.+)\s*?$', msg, rgx_opts)
+            if m:
+                host = m.group(1)
+
+                m = re.search(cfg.get('pattern', 'service') or r'^\s*?Service:\s*?(.+)\s*?$', msg, rgx_opts)
+                if m:
+                    icinga_cmd = 'ACKNOWLEDGE_SVC_PROBLEM;{0};{1}'.format(host, m.group(1))
+                else:
+                    icinga_cmd = 'ACKNOWLEDGE_HOST_PROBLEM;' + host
+
+                msg_time = data['timestamp']
+                try:
+                    msg_datetime = datetime.strptime(msg_time, '%Y%m%d%H%M%S')
+                except ValueError:
+                    pass
+                else:
+                    msg_time = str(msg_datetime)
+
+                with open(cfg.get('icinga', 'cmd-pipe') or '/var/lib/icinga/rw/icinga.cmd', 'ab') as f:
+                    print('[{0}] {1};1;1;1;{2};Acknowledged by {2} at {3}'.format(
+                        int(time()), icinga_cmd, sender if contact is None else contact, msg_time
+                    ), file=f)
 except HTTPError as e:
     msg = str(e)
     print(end='HTTP/1.0 {0}\nContent-Type: text/plain; charset=UTF-8\n'
