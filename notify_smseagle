@@ -22,7 +22,7 @@ import json
 import ssl
 import sys
 from optparse import OptionParser
-from urllib2 import Request, urlopen
+from urllib.request import Request, urlopen
 
 
 def format_exception(e):
@@ -59,18 +59,18 @@ if __name__ == '__main__':
 
     try:
         response = urlopen(Request(url.rstrip('/') + '/index.php/jsonrpc/sms', json.dumps({
-            u'method': u'sms.send_sms',
-            u'params': dict(((
+            'method': 'sms.send_sms',
+            'params': dict(((
                 opt.decode('utf-8', 'replace'), opts[opt].decode('utf-8', 'replace')
             ) for opt in ('login', 'pass', 'to', 'message') if opts[opt] is not None))
         }), {'Content-Type': 'application/json'})).read()
 
         try:
-            result = json.loads(response.strip())[u'result']
+            result = json.loads(response.strip())['result']
         except (ValueError, KeyError):
             raise Exception('unexpected response: ' + repr(response))
 
-        if not result.startswith(u'OK;'):
+        if not result.startswith('OK;'):
             raise Exception('unexpected result: ' + repr(result)[1:])
     except Exception as e:
         sys.exit("Couldn't send the message because of an error: " + format_exception(e))

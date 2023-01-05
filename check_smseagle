@@ -21,8 +21,8 @@
 import ssl
 import sys
 from optparse import OptionParser
-from urllib import urlencode
-from urllib2 import urlopen
+from urllib.parse import urlencode
+from urllib.request import urlopen
 
 
 def format_exception(e):
@@ -50,13 +50,13 @@ def return_check_status(code, desc, perfdata=None):
     :type perfdata:     dict
     """
 
-    print 'SMSEAGLE {0}: {1}{2}'.format(
+    print('SMSEAGLE {0}: {1}{2}'.format(
         ('OK', 'WARNING', 'CRITICAL', 'UNKNOWN')[code],
         desc,
         ' |' + ' '.join((
-            "'{0}'={1}".format(label, pd) for (label, pd) in perfdata.iteritems()
+            "'{0}'={1}".format(label, pd) for (label, pd) in perfdata.items()
         )) if perfdata else ''
-    )
+    ))
     sys.exit(code)
 
 
@@ -67,7 +67,7 @@ def fail(msg):
     :type msg: str
     """
 
-    print >>sys.stderr, 'error:', msg
+    print('error:', msg, file=sys.stderr)
     sys.exit(3)
 
 
