@@ -1,13 +1,14 @@
 # check_smseagle
 
-## About
+check_smseagle checks the GSM signal strength of an [SMSEagle](http://www.smseagle.eu/) device.
 
-check_smseagle checks the GSM signal strength
-of an [SMSEagle](http://www.smseagle.eu/) device.
+## Installation
 
-## Requirements
+The plugin requires at least Python 3.
 
-Python 2.6 or 2.7 with SSL support
+## Usage
+
+TODO
 
 ## Example
 
@@ -28,13 +29,15 @@ by adding the following options:
 
 # notify_smseagle
 
-## About
-
 notify_smseagle sends SMS via an [SMSEagle](http://www.smseagle.eu/) device.
 
-## Requirements
+## Installation
 
-Python 2.6 or 2.7 with SSL support
+The plugin requires at least Python 3.
+
+## Usage
+
+TODO
 
 ## Example
 
@@ -47,8 +50,6 @@ notify_smseagle -u http://192.168.144.120 -U jdoe -P 123456 -t +49123456789 -m n
 ```
 
 # smseagle_ack.cgi
-
-## About
 
 smseagle_ack.cgi is a CGI 1.1 script for the "callback url" function
 of an [SMSEagle](http://www.smseagle.eu/) device.
@@ -64,7 +65,7 @@ Python 2.6 or 2.7
 The script reads its configuration from the file specified in the
 X_SMSEAGLE_ACK_CGI_CFG environment variable. Default: /etc/smseagle-ack-cgi.conf
 
-### Example
+## Example
 
 ```
 [security]
