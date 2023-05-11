@@ -24,7 +24,7 @@ import ssl
 import sys
 import urllib.request
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 # Return code level
 # 0 - OK       - The plugin was able to check the service and it appeared to be functioning properly
