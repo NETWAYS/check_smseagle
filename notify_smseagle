@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 
 # Copyright (C) 2016  NETWAYS GmbH, https://netways.de
 #
@@ -18,59 +18,113 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
+from argparse import ArgumentParser
+from urllib.parse import urljoin
 import json
 import ssl
 import sys
-from optparse import OptionParser
-from urllib.request import Request, urlopen
+import urllib.request
+
+__version__ = '2.0.0'
 
 
-def format_exception(e):
+def commandline(args):
     """
-    Return a printable representation of an exception
+    Defines the CLI Parser and parses the arguments
+    """
+    parser = ArgumentParser(description= "notify_smseagle (Version: %s)" % (__version__))
 
-    :param e:   The exception to format
-    :type e:    BaseException
-    :rtype:     str
+    parser.add_argument('-u', '--url', required=True,
+                            help="URL to send the message to")
+    parser.add_argument('-U', '--user',
+                            help="User for the login")
+    parser.add_argument('-P', '--password',
+                            help="Password for the login")
+    parser.add_argument('-t', '--to',
+                            help="Recipient for the message")
+    parser.add_argument('-m', '--message',
+                            help="The message to send")
+    parser.add_argument('-T', '--timeout', help='Seconds before connection times out (default 10)',
+                        default=10,
+                        type=int)
+    parser.add_argument('--insecure',
+                        action='store_true',
+                        default=False,
+                        help='Allow insecure SSL connections (default False)')
+
+    return parser.parse_args(args)
+
+def send_data(url, request, timeout, insecure):
+    """
+    Sends the data via HTTP. Basically a wrapper around urllib.
+    What we need to send:
+
+     Header: Content-Type: application/json
+     Body: '{"params":
+        {"to": "recipient",
+         "login": "user",
+         "message": "hello",
+         "pass": "password"},
+         "method": "sms.send_sms"}'
     """
 
-    t = type(e)
-    return str(e) if t is Exception else '{0}.{1}: {2!s}'.format(t.__module__, t.__name__, e)
+    # Default context for connection
+    ctx = ssl.create_default_context()
+    if insecure is True:
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
 
+    response = urllib.request.urlopen(url=url, data=request, timeout=timeout, context=ctx) # pylint: disable=consider-using-with
 
-if __name__ == '__main__':
-    parser = OptionParser(prog='notify_smseagle', version='0.0')
-    parser.add_option('-u', '--url')
-    parser.add_option('-U', '--user', metavar='USERNAME', dest='login')
-    parser.add_option('-P', '--pass', metavar='PASSWORD')
-    parser.add_option('-t', '--to', metavar='RECIPIENT')
-    parser.add_option('-m', '--message')
-    opts, args = parser.parse_args()
-    opts = vars(opts)
+    if response.getcode() != 200:
+        raise RuntimeError("Could not get response")
 
-    url = opts['url']
-    if not url:
-        sys.exit('error: required option -u missing')
+    resp = response.read().decode()
 
-    if hasattr(ssl, '_create_unverified_context'):
-        # Don't verify SSL certificates by default
-        # to keep HTTPS connections working in Python 2.7+.
-        ssl._create_default_https_context = ssl._create_unverified_context
+    return resp
+
+def create_request(args):
+    """
+    Small wrapper to build the request. Makes for easier testing
+    """
+    return urllib.request.Request(json.dumps({
+        'method': 'sms.send_sms',
+        'Content-Type': 'application/json',
+        'params': {
+            'login': args.user,
+            'pass': args.password,
+            'to': args.to,
+            'message': args.message
+        }
+    }))
+
+def main(args):
+
+    url = urljoin(args.url, "/index.php/jsonrpc/sms")
+    r = create_request(args)
 
     try:
-        response = urlopen(Request(url.rstrip('/') + '/index.php/jsonrpc/sms', json.dumps({
-            'method': 'sms.send_sms',
-            'params': dict(((
-                opt.decode('utf-8', 'replace'), opts[opt].decode('utf-8', 'replace')
-            ) for opt in ('login', 'pass', 'to', 'message') if opts[opt] is not None))
-        }), {'Content-Type': 'application/json'})).read()
+        response = send_data(url=url, request=r, timeout=args.timeout, insecure=args.insecure)
+    except Exception as data_exc: # pylint: disable=broad-except
+        print('Could not connect to SMS Eagle', data_exc)
+        return 3
 
-        try:
-            result = json.loads(response.strip())['result']
-        except (ValueError, KeyError):
-            raise Exception('unexpected response: ' + repr(response))
+    try:
+        result = json.loads(response.strip())['result']
+    except Exception as json_exc: # pylint: disable=broad-except
+        print('Could not parse data', json_exc)
+        return 3
 
-        if not result.startswith('OK;'):
-            raise Exception('unexpected result: ' + repr(result)[1:])
-    except Exception as e:
-        sys.exit("Couldn't send the message because of an error: " + format_exception(e))
+    if not result.startswith('OK;'):
+        print('Could not send message', result)
+        return 2
+
+    return 0
+
+if __name__ == '__main__': # pragma: no cover
+    try:
+        ARGS = commandline(sys.argv[1:])
+        sys.exit(main(ARGS))
+    except Exception as e: # pylint: disable=broad-except
+        print("Error", e)
+        sys.exit(3)

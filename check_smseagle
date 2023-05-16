@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 
 # Copyright (C) 2016  NETWAYS GmbH, https://netways.de
 #
@@ -18,116 +18,151 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
+from argparse import ArgumentParser
+from urllib.parse import urljoin, urlencode
 import ssl
 import sys
-from optparse import OptionParser
-from urllib.parse import urlencode
-from urllib.request import urlopen
+import urllib.request
 
+__version__ = "2.0.0"
 
-def format_exception(e):
+# Return code level
+# 0 - OK       - The plugin was able to check the service and it appeared to be functioning properly
+# 1 - WARNING  - The plugin was able to check the service, but it appeared to be above some "warning"
+#                threshold or did not appear to be working properly
+# 2 - CRITICAL - The plugin detected that either the service was not running or it was above some "critical" threshold
+# 3 - UNKNOWN  - Invalid command line arguments were supplied to the plugin or low-level failures
+OK = 0
+WARNING = 1
+CRITICAL = 2
+UNKNOWN = 3
+
+def generate_output(status='UNKNOWN', description=None, perfdata=None):
     """
-    Return a printable representation of an exception
-
-    :param e:   The exception to format
-    :type e:    BaseException
-    :rtype:     str
-    """
-
-    t = type(e)
-    return '{0}.{1}: {2!s}'.format(t.__module__, t.__name__, e)
-
-
-def return_check_status(code, desc, perfdata=None):
-    """
-    Print check result and return the given code to the OS
-
-    :param code:        Check result status code, must be >= 0 and <= 3
-    :type code:         int
-    :param desc:        Check result description
-    :type desc:         str
-    :param perfdata:    Performance data, e.g.:  {'gsm_signal_strenght': '30%;10:;5:;;'}
-    :type perfdata:     dict
+    Generate plugin data output with status and perfdata
     """
 
-    print('SMSEAGLE {0}: {1}{2}'.format(
-        ('OK', 'WARNING', 'CRITICAL', 'UNKNOWN')[code],
-        desc,
-        ' |' + ' '.join((
-            "'{0}'={1}".format(label, pd) for (label, pd) in perfdata.items()
-        )) if perfdata else ''
-    ))
-    sys.exit(code)
+    pluginoutput = str(status)
 
+    if description:
+        pluginoutput += ' - ' + str(description)
 
-def fail(msg):
+    # Perfdata we explicitly extracted from the data
+    if perfdata:
+        pluginoutput += '|' + ' '.join([key.lower().replace(" ", "_").replace(",", "") + '=' + str(value) for key, value in perfdata.items()])
+
+    print(pluginoutput)
+
+def commandline(args):
     """
-    Print msg to stderr and exit
+    Parse commandline arguments.
+    """
+    parser = ArgumentParser(description= "check_smseagle (Version: %s)" % (__version__))
 
-    :type msg: str
+    parser.add_argument("-u", "--url", required=True,
+                        help="URL to check")
+    parser.add_argument("-U", "--user",
+                        help="User for the login")
+    parser.add_argument("-P", "--password",
+                        help="Password for the login")
+    parser.add_argument("-M", "--modem",
+                        help="Modem ID")
+    parser.add_argument("-w", "--warning", default=10, type=int,
+                        help="Warning if the GSM signal strength is less than PERCENT. Must be greater then --critical")
+    parser.add_argument("-c", "--critical", default=5, type=int,
+                        help="Critical if the GSM signal strength is less than PERCENT")
+    parser.add_argument("-T", "--timeout", help="Seconds before connection times out (default 10)",
+                        default=10,
+                        type=int)
+    parser.add_argument("--insecure",
+                        action="store_true",
+                        default=False,
+                        help="Allow insecure SSL connections (default False)")
+
+    a = parser.parse_args(args)
+
+    if a.critical > a.warning:
+        print("UNKNOWN - The critical threshold must not be greater than the warning")
+        sys.exit(3)
+
+    return a
+
+def get_data(url, timeout, insecure):
+    """
+    Requests the data via HTTP. Basically a wrapper around urllib.
+
+    What we expect from the server:
+
+    HTTP/1.0 200 OK
+    que: foo
+    failed: 0
+    signal_strength: 15 db
+    total: 25
     """
 
-    print('error:', msg, file=sys.stderr)
-    sys.exit(3)
+    # Default context for connection
+    ctx = ssl.create_default_context()
+    if insecure is True:
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
 
+    response = urllib.request.urlopen(url=url, timeout=timeout, context=ctx) # pylint: disable=consider-using-with
 
-if __name__ == '__main__':
-    parser = OptionParser(prog='check_smseagle', version='0.0')
-    parser.add_option('-u', '--url')
-    parser.add_option('-U', '--user', metavar='USERNAME', dest='login')
-    parser.add_option('-P', '--pass', metavar='PASSWORD')
-    parser.add_option('-M', '--modem', metavar='MODEM_NO', dest='modem_no')
-    parser.add_option('-w', '--warn', default=10, type='int', metavar='PERCENT',
-                      help='warning if the GSM signal strength is less than PERCENT %')
-    parser.add_option('-c', '--crit', default=5, type='int', metavar='PERCENT',
-                      help='critical if the GSM signal strength is less than PERCENT %')
+    if response.getcode() != 200:
+        raise RuntimeError("Could not get response")
+
+    resp = response.read().decode()
+    return resp
+
+def main(args):
+
+    url = urljoin(args.url, '/index.php/http_api/get_gsmsignal')
+
+    params = urlencode({
+        'login': args.user,
+        'pass': args.password,
+        'modem_no': args.modem
+    })
+
+    url += "?%s" % params
+
     try:
-        opts, args = parser.parse_args()
-    except SystemExit as e:
-        # In case of incorrect usage of the CLI, the OptionParser() exits
-        # with code 2 which isn't suitable for Icinga plugins (in that case).
-        e.code = 3
-        raise
-
-    opts = vars(opts)
-
-    url = opts['url']
-    if not url:
-        fail('required option -u missing')
-
-    warn = opts['warn']
-    crit = opts['crit']
-    if crit > warn:
-        fail('the critical threshold must not be greater than the warning one')
-
-    if hasattr(ssl, '_create_unverified_context'):
-        # Don't verify SSL certificates by default
-        # to keep HTTPS connections working in Python 2.7+.
-        ssl._create_default_https_context = ssl._create_unverified_context
-
-    try:
-        response = urlopen(url.rstrip('/') + '/index.php/http_api/get_gsmsignal?' + urlencode([
-            (opt, opts[opt]) for opt in ('login', 'pass', 'modem_no') if opts[opt] is not None
-        ])).read()
-    except Exception as e:
-        return_check_status(3, "Couldn't fetch the GSM signal strength because of an error: " + format_exception(e))
+        response = get_data(url=url, timeout=args.timeout, insecure=args.insecure)
+    except Exception as data_exc: # pylint: disable=broad-except
+        print("UNKNOWN - Couldn't fetch the GSM signal strength because of an error", data_exc)
+        return UNKNOWN
 
     try:
         strength = int(response.strip())
-    except ValueError:
-        return_check_status(3, "Couldn't evaluate the GSM signal strength"
-                               " because of an unexpected response: " + repr(response))
+    except ValueError as parse_exc:
+        print("UNKNOWN - Couldn't evaluate the GSM signal strength", parse_exc)
+        return UNKNOWN
 
     if strength == -1:
-        return_check_status(2, 'GSM modem is disconnected from GSM network')
+        generate_output("CRITICAL", 'GSM modem is disconnected from GSM network')
+        return CRITICAL
 
-    if strength < crit:
-        icinga_stat = 2
+    if strength < args.critical:
+        exit_code = CRITICAL
+        status = "CRITICAL"
+    elif strength < args.warning:
+        exit_code = WARNING
+        status = "WARNING"
     else:
-        icinga_stat = 1 if strength < warn else 0
+        exit_code = OK
+        status = "OK"
 
-    return_check_status(
-        icinga_stat,
-        'GSM signal strength: {0}%'.format(strength),
-        {'gsm_signal_strenght': '{0}%;{1}:;{2}:;;'.format(strength, warn, crit)}
-    )
+    generate_output(status, f"GSM signal strength: {strength}%", {'gsm_signal_strenght': f"{strength}%;{args.warning}:;{args.critical}:;;"})
+    return exit_code
+
+
+if __name__ == '__main__': # pragma: no cover
+    try:
+        ARGS = commandline(sys.argv[1:])
+        sys.exit(main(ARGS))
+    except SystemExit:
+        # Re-throw the exception
+        raise sys.exc_info()[1].with_traceback(sys.exc_info()[2]) # pylint: disable=raise-missing-from
+    except:
+        print("UNKNOWN - Error: %s" % (str(sys.exc_info()[1])))
+        sys.exit(3)
