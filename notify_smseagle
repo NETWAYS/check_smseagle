@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Copyright (C) 2016  NETWAYS GmbH, https://netways.de
 #
@@ -21,9 +21,9 @@
 from argparse import ArgumentParser
 from urllib.parse import urljoin
 import json
-import ssl
 import sys
-import urllib.request
+import requests
+import urllib3
 
 __version__ = '2.0.0'
 
@@ -32,18 +32,16 @@ def commandline(args):
     """
     Defines the CLI Parser and parses the arguments
     """
-    parser = ArgumentParser(description= "notify_smseagle (Version: %s)" % (__version__))
+    parser = ArgumentParser(description="notify_smseagle (Version: %s)" % (__version__))
 
     parser.add_argument('-u', '--url', required=True,
-                            help="URL to send the message to")
-    parser.add_argument('-U', '--user',
-                            help="User for the login")
-    parser.add_argument('-P', '--password',
-                            help="Password for the login")
-    parser.add_argument('-t', '--to',
-                            help="Recipient for the message")
-    parser.add_argument('-m', '--message',
-                            help="The message to send")
+                        help="URL to send the message to")
+    parser.add_argument('-r', '--recipient', required=True,
+                        help="Recipient for the message")
+    parser.add_argument('-m', '--message', required=True,
+                        help="The message to send")
+    parser.add_argument("-t", "--token", required=True,
+                        help="User api token for authentication")
     parser.add_argument('-T', '--timeout', help='Seconds before connection times out (default 10)',
                         default=10,
                         type=int)
@@ -54,77 +52,65 @@ def commandline(args):
 
     return parser.parse_args(args)
 
-def send_data(url, request, timeout, insecure):
+
+def prepare_data(args):
+    return json.dumps({
+        "to": [
+            args.recipient
+        ],
+        "text": args.message
+    })
+
+
+def create_request(args, data):
     """
-    Sends the data via HTTP. Basically a wrapper around urllib.
-    What we need to send:
-
-     Header: Content-Type: application/json
-     Body: '{"params":
-        {"to": "recipient",
-         "login": "user",
-         "message": "hello",
-         "pass": "password"},
-         "method": "sms.send_sms"}'
+    Prepare and submits request with given arguments.
     """
 
-    # Default context for connection
-    ctx = ssl.create_default_context()
-    if insecure is True:
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
+    # Compress warnings if insecure and change request verification
+    verify = True
+    if args.insecure:
+        urllib3.disable_warnings()
+        verify = False
 
-    response = urllib.request.urlopen(url=url, data=request, timeout=timeout, context=ctx) # pylint: disable=consider-using-with
-
-    if response.getcode() != 200:
-        raise RuntimeError("Could not get response")
-
-    resp = response.read().decode()
+    resp = requests.request(
+        method="POST",
+        headers={
+            'Content-Type': 'application/json',
+            'access-token': args.token
+        },
+        verify=verify,
+        url=urljoin(args.url, "/api/v2/messages/sms"),
+        data=data,
+        timeout=args.timeout
+    )
 
     return resp
 
-def create_request(args):
-    """
-    Small wrapper to build the request. Makes for easier testing
-    """
-    return urllib.request.Request(json.dumps({
-        'method': 'sms.send_sms',
-        'Content-Type': 'application/json',
-        'params': {
-            'login': args.user,
-            'pass': args.password,
-            'to': args.to,
-            'message': args.message
-        }
-    }))
 
 def main(args):
-
-    url = urljoin(args.url, "/index.php/jsonrpc/sms")
-    r = create_request(args)
-
     try:
-        response = send_data(url=url, request=r, timeout=args.timeout, insecure=args.insecure)
-    except Exception as data_exc: # pylint: disable=broad-except
-        print('Could not connect to SMS Eagle', data_exc)
+        data = prepare_data(args)
+    except Exception as exc: # pylint: disable=broad-except
+        print("Could not prepare json data.", exc)
+        return 3
+    try:
+        response = create_request(args, data)
+    except Exception as exc: # pylint: disable=broad-except
+        print("Could not connect to SMS Eagle and send message.", exc)
         return 3
 
-    try:
-        result = json.loads(response.strip())['result']
-    except Exception as json_exc: # pylint: disable=broad-except
-        print('Could not parse data', json_exc)
-        return 3
-
-    if not result.startswith('OK;'):
-        print('Could not send message', result)
+    if not response.status_code == 200:
+        print("Could not send message.", response)
         return 2
 
     return 0
 
-if __name__ == '__main__': # pragma: no cover
+
+if __name__ == '__main__':  # pragma: no cover
     try:
         ARGS = commandline(sys.argv[1:])
         sys.exit(main(ARGS))
-    except Exception as e: # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
         print("Error", e)
         sys.exit(3)

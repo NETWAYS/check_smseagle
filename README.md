@@ -48,28 +48,35 @@ You can increase the warning and critical thresholds by adding the following opt
 
 # notify_smseagle
 
-notify_smseagle sends SMS via an [SMSEagle](http://www.smseagle.eu/) device.
+notify_smseagle sends SMS via an [SMSEagle](http://www.smseagle.eu/) device.  
+Only works with the recommended API v2. For API v1 please use the version 1.0.0.
 
 ## Installation
 
-The plugin requires at least Python 3.
+The plugin requires at least Python 3 and the Python requests module
+
+Please prefer installation via system packages like python3-requests.
+
+Alternatively you can install with pip:
+
+`pip3 install -r requirements.txt`
 
 ## Usage
 
 ```
-notify_smseagle.py [-h] -u URL [-U USER] [-P PASSWORD] [-t TO] [-m MESSAGE] [-T TIMEOUT] [--insecure]
+notify_smseagle.py [-h] -u URL -r RECIPIENT -m MESSAGE -t TOKEN [-T TIMEOUT] [--insecure]
 
-notify_smseagle (Version: 1.0.0)
+notify_smseagle (Version: 2.0.0)
 
 options:
   -h, --help            show this help message and exit
   -u URL, --url URL     URL to send the message to
-  -U USER, --user USER  User for the login
-  -P PASSWORD, --password PASSWORD
-                        Password for the login
-  -t TO, --to TO        Recipient for the message
+  -r RECIPIENT, --recipient RECIPIENT
+                        Recipient for the message
   -m MESSAGE, --message MESSAGE
                         The message to send
+  -t TOKEN, --token TOKEN
+                        User api token for authentication
   -T TIMEOUT, --timeout TIMEOUT
                         Seconds before connection times out (default 10)
   --insecure            Allow insecure SSL connections (default False)
@@ -77,12 +84,12 @@ options:
 
 ## Example
 
-Let's say your device listens at 192.168.144.120:80 and there is a login "jdoe" with the password "123456".
+Let's say your device listens at 192.168.144.120:443 and there is an api token `qqgfHAtBuja8liwcOafzXzm4WHcWYOb`.
 
 To send an SMS you would use notify_smseagle like this:
 
 ```
-notify_smseagle -u http://192.168.144.120 -U jdoe -P 123456 -t +49123456789 -m nothingtoreadhere
+notify_smseagle -u "https://192.168.144.120" -t "qqgfHAtBuja8liwcOafzXzm4WHcWYOb" -r "+49123456789" -m "nothingtoreadhere"
 ```
 
 # smseagle_ack.cgi
