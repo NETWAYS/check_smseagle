@@ -1,89 +1,65 @@
 #!/usr/bin/env python3
-
+import json
 import unittest
 import unittest.mock as mock
 import sys
 
-import urllib.request
-import json
-
 sys.path.append('..')
 
 from notify_smseagle import commandline
-from notify_smseagle import send_data
 from notify_smseagle import main
+from notify_smseagle import prepare_data
 from notify_smseagle import create_request
+
 
 class CLITesting(unittest.TestCase):
 
     def test_commandline(self):
-        actual = commandline(['-u', 'localhost'])
-        self.assertEqual(actual.url, 'localhost')
+        actual = commandline(['-u', 'http://localhost', '-t', 'token', '-r', 'recipient', '-m' 'msg'])
+        self.assertEqual(actual.url, 'http://localhost')
         self.assertFalse(actual.insecure)
 
-class URLTesting(unittest.TestCase):
 
-    @mock.patch('urllib.request')
-    def test_send_data(self, mock_url):
+class DataTesting(unittest.TestCase):
 
-        m = mock.MagicMock()
-        m.getcode.return_value = 200
-        m.read.return_value = b'OK'
-        mock_url.urlopen.return_value = m
+    def test_prepare_data(self):
+        args = commandline(['--url', 'http://localhost', '-t', 'token', '-r', '+4912345', '-m' 'msg'])
 
-        actual = send_data(url="http://localhost", request={}, timeout=3, insecure=True)
-        expected = 'OK'
+        actual = prepare_data(args)
+        expected = json.dumps({"to": ["+4912345"], "text": "msg"})
 
         self.assertEqual(actual, expected)
 
 
-    def test_create_request(self):
-        args = commandline(['--url',
-                            'localhost',
-                            '--to',
-                            'to',
-                            '--user',
-                            'user',
-                            '--pass',
-                            'pass',
-                            '--message',
-                            'msg',
-                            ])
+class RequestTesting(unittest.TestCase):
 
-        req = create_request(args)
-        actual = req.get_full_url()
-        expected = '{"method": "sms.send_sms", "Content-Type": "application/json", "params": {"login": "user", "pass": "pass", "to": "to", "message": "msg"}}'
+    @mock.patch('requests.request')
+    def test_create_request(self, mock_data):
+        mock_data.return_value = 200
 
-        self.assertEqual(actual, expected)
+        args = commandline(['--url', 'http://localhost', '-t', 'token', '-r', '+4912345', '-m' 'msg'])
+        req = create_request(args, json.dumps({"to": ["+4912345"], "text": "msg"}))
+
+        self.assertEqual(req, 200)
+
 
 class MainTesting(unittest.TestCase):
 
-    @mock.patch('notify_smseagle.send_data')
-    def test_main_ok(self, mock_data):
-        d = """
-        {"result": "OK;"}
-        """
-        mock_data.return_value = d
+    @mock.patch('requests.request')
+    @mock.patch('notify_smseagle.create_request')
+    def test_main_ok(self, mock_req, mock_data):
+        mock_req.return_value = 200
+        mock_data.return_value = ""
 
-        args = commandline(['--url', 'localhost'])
-        actual = main(args)
-        self.assertEqual(actual, 0)
+        args = commandline(['--url', 'http://localhost', '-t', 'token', '-r', '+4912345', '-m' 'msg', '--insecure'])
+        req = create_request(args, json.dumps({"to": ["+4912345"], "text": "msg"}))
 
-    @mock.patch('notify_smseagle.send_data')
-    def test_main_json_error(self, mock_data):
-        d = """
-        NO JSON FOR YOU!
-        """
-        mock_data.return_value = d
+        self.assertEqual(req, "")
 
-        args = commandline(['--url', 'localhost'])
-        actual = main(args)
-        self.assertEqual(actual, 3)
-
-    @mock.patch('notify_smseagle.send_data')
+    @mock.patch('notify_smseagle.create_request')
     def test_main_url_error(self, mock_data):
         mock_data.side_effect = Exception("FAIL")
 
-        args = commandline(['--url', 'localhost'])
+        args = commandline(['-u', 'http://localhost', '-t', 'token', '-r', 'recipient', '-m' 'msg'])
         actual = main(args)
         self.assertEqual(actual, 3)
