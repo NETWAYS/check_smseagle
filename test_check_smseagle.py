@@ -55,16 +55,19 @@ class UtilTesting(unittest.TestCase):
 class RequestTesting(unittest.TestCase):
 
     @mock.patch('requests.request')
-    @mock.patch('check_smseagle.create_request')
-    def test_create_request(self, mock_req, mock_data):
-        mock_req.return_value = 200
-        mock_data.status_code = 200
+    def test_create_request(self, mock_req):
+        r = mock.MagicMock()
+        r.status_code = 200
+        mock_req.return_value = r
 
-        args = commandline(['--url', 'http://localhost', '--token', 'token'])
-        actual = create_request(args, "http://localhost")
+        args = commandline(['--url', 'https://localhost', '--token', 'token123'])
+        actual = create_request(args, "https://localhost")
 
-        expected = '{"modem_no":1,"signal_strength":66}'
-        self.assertEqual(actual, expected)
+        mock_req.assert_called_with(method='GET',
+                                    headers={'accept': 'application/json', 'access-token': 'token123'},
+                                    verify=True,
+                                    url='https://localhost',
+                                    timeout=10)
 
     @mock.patch('requests.request')
     def test_get_data_404(self, mock_url):
@@ -81,49 +84,54 @@ class RequestTesting(unittest.TestCase):
 class MainTesting(unittest.TestCase):
 
     @mock.patch('check_smseagle.create_request')
-    @mock.patch('check_smseagle.get_strength')
-    def test_main_ok(self, mock_req, mock_prep):
-        d = """
+    def test_main_ok(self, mock_req):
+        # Mock object for HTTP Response
+        r = mock.MagicMock()
+        # Mocking the JSON method on the response
+        r.json.return_value = """
         {"modem_no":1,"signal_strength":66}
         """
-        mock_req.return_value = d
+        # Set mock HTTP Reposonse as mock_request return value
+        mock_req.return_value = r
 
         args = commandline(['-u', 'http://localhost', '-t', 'token', '-M', '1'])
         actual = main(args)
         self.assertEqual(actual, 0)
 
-        mock_data.assert_called_with(url='/index.php/http_api/get_gsmsignal?login=foo&pass=bar&modem_no=1', timeout=10,
-                                     insecure=False)
-
-    @mock.patch('check_smseagle.get_data')
-    def test_main_warn(self, mock_data):
-        d = """
-        9
+    @mock.patch('check_smseagle.create_request')
+    def test_main_warn(self, mock_req):
+        r = mock.MagicMock()
+        r.json.return_value = """
+        {"modem_no":1,"signal_strength":9}
         """
-        mock_data.return_value = d
+        mock_req.return_value = r
 
-        args = commandline(['-u', 'localhost'])
+        args = commandline(['-u', 'http://localhost', '-t', 'token', '-M', '1'])
         actual = main(args)
         self.assertEqual(actual, 1)
 
-    @mock.patch('check_smseagle.get_data')
-    def test_main_critical(self, mock_data):
-        d = """
-        1
+    @mock.patch('check_smseagle.create_request')
+    def test_main_critical(self, mock_req):
+        r = mock.MagicMock()
+        r.json.return_value = """
+        {"modem_no":1,"signal_strength":1}
         """
-        mock_data.return_value = d
+        mock_req.return_value = r
 
-        args = commandline(['-u', 'localhost'])
+        args = commandline(['-u', 'http://localhost', '-t', 'token', '-M', '1'])
+
         actual = main(args)
         self.assertEqual(actual, 2)
 
-    @mock.patch('check_smseagle.get_data')
-    def test_main_unknown(self, mock_data):
-        d = """
+    @mock.patch('check_smseagle.create_request')
+    def test_main_unknown(self, mock_req):
+        r = mock.MagicMock()
+        r.json.return_value = """
         ¯\_ (ツ)_/¯
         """
-        mock_data.return_value = d
+        mock_req.return_value = r
 
-        args = commandline(['-u', 'localhost'])
+        args = commandline(['-u', 'http://localhost', '-t', 'token', '-M', '1'])
+
         actual = main(args)
         self.assertEqual(actual, 3)

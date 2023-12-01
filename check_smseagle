@@ -122,7 +122,6 @@ def create_request(args, url):
         timeout=args.timeout
     )
 
-    print(response.status_code) # TODO remove
     if response.status_code != 200:
         raise RuntimeError("Could not get response")
 
@@ -133,19 +132,19 @@ def prepare_url(args):
     """
     Prepare url for the request
     """
-    baseUrl = urljoin(args.url, "/api/v2/modem/signal")
+    base_url = urljoin(args.url, "/api/v2/modem/signal")
     if args.modem is not None:
-        url = baseUrl + "/" + args.modem
+        url = base_url + "/" + args.modem
         return url
 
-    return baseUrl
+    return base_url
 
 
 def get_strength(response):
     """
     Parse response and returns signal_strength of given modem
     """
-    data = json.loads(json.dumps(response.json()))
+    data = json.loads(response.json())
     return data["signal_strength"]
 
 
