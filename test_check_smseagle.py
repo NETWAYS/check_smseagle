@@ -14,6 +14,7 @@ from check_smseagle import prepare_url
 from check_smseagle import generate_output
 from check_smseagle import main
 
+
 class CLITesting(unittest.TestCase):
 
     def test_commandline(self):
@@ -28,14 +29,14 @@ class CLITesting(unittest.TestCase):
         self.assertEqual(actual.warning, 2)
 
         with self.assertRaises(SystemExit) as context:
-            actual = commandline(['-u', 'localhost', '-c', '10', '-w', '5'])
+            commandline(['-u', 'localhost', '-c', '10', '-w', '5'])
 
 
 class UtilTesting(unittest.TestCase):
 
     @mock.patch('builtins.print')
     def test_output(self, mock_print):
-        actual = generate_output
+        generate_output()
 
     def test_prepare_url(self):
         args = commandline(['--url', 'http://localhost', '--token', 'token'])
@@ -66,6 +67,21 @@ class RequestTesting(unittest.TestCase):
         mock_req.assert_called_with(method='GET',
                                     headers={'accept': 'application/json', 'access-token': 'token123'},
                                     verify=True,
+                                    url='https://localhost',
+                                    timeout=10)
+
+    @mock.patch('requests.request')
+    def test_create_request_insecure(self, mock_req):
+        r = mock.MagicMock()
+        r.status_code = 200
+        mock_req.return_value = r
+
+        args = commandline(['--url', 'https://localhost', '--token', 'token123', '--insecure'])
+        actual = create_request(args, "https://localhost")
+
+        mock_req.assert_called_with(method='GET',
+                                    headers={'accept': 'application/json', 'access-token': 'token123'},
+                                    verify=False,
                                     url='https://localhost',
                                     timeout=10)
 

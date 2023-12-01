@@ -1,24 +1,30 @@
 # check_smseagle
 
-check_smseagle checks the GSM signal strength of an [SMSEagle](http://www.smseagle.eu/) device.
+check_smseagle checks the GSM signal strength of an [SMSEagle](http://www.smseagle.eu/) device.  
+Only works with the recommended API v2. For API v1 please use the version 1.0.0.
 
 ## Installation
 
-The plugin requires at least Python 3.
+The plugin requires at least Python 3 and the Python requests module
+
+Please prefer installation via system packages like python3-requests.
+
+Alternatively you can install with pip:
+
+`pip3 install -r requirements.txt`
 
 ## Usage
 
 ```
-check_smseagle.py [-h] -u URL [-U USER] [-P PASSWORD] [-M MODEM] [-w WARNING] [-c CRITICAL] [-T TIMEOUT] [--insecure]
+check_smseagle.py [-h] -u URL -t TOKEN [-M MODEM] [-w WARNING] [-c CRITICAL] [-T TIMEOUT] [--insecure]
 
-check_smseagle (Version: 1.0.0)
+check_smseagle (Version: 2.0.0)
 
 options:
   -h, --help            show this help message and exit
   -u URL, --url URL     URL to check
-  -U USER, --user USER  User for the login
-  -P PASSWORD, --password PASSWORD
-                        Password for the login
+  -t TOKEN, --token TOKEN
+                        User api token for authentication
   -M MODEM, --modem MODEM
                         Modem ID
   -w WARNING, --warning WARNING
@@ -32,12 +38,12 @@ options:
 
 ## Example
 
-Let's say your device listens at 192.168.144.120:80 and there is a login "jdoe" with the password "123456".
+Let's say your device listens at 192.168.144.120:443 and there is an api token `qqgfHAtBuja8liwcOafzXzm4WHcWYOb`.
 
 To monitor the GSM signal strength you would use the plugin like this:
 
 ```
-check_smseagle -u http://192.168.144.120 -U jdoe -P 123456
+check_smseagle -u "https://192.168.144.120" -t "qqgfHAtBuja8liwcOafzXzm4WHcWYOb"
 ```
 
 You can increase the warning and critical thresholds by adding the following options:
