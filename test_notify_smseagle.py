@@ -9,7 +9,7 @@ sys.path.append('..')
 from notify_smseagle import commandline
 from notify_smseagle import main
 from notify_smseagle import prepare_data
-from notify_smseagle import create_request
+from notify_smseagle import make_request
 
 
 class CLITesting(unittest.TestCase):
@@ -34,11 +34,11 @@ class DataTesting(unittest.TestCase):
 class RequestTesting(unittest.TestCase):
 
     @mock.patch('requests.request')
-    def test_create_request(self, mock_data):
+    def test_make_request(self, mock_data):
         mock_data.return_value = 200
 
         args = commandline(['--url', 'http://localhost', '-t', 'token', '-r', '+4912345', '-m' 'msg'])
-        req = create_request(args, json.dumps({"to": ["+4912345"], "text": "msg"}))
+        req = make_request(args, json.dumps({"to": ["+4912345"], "text": "msg"}))
 
         self.assertEqual(req, 200)
 
@@ -46,17 +46,17 @@ class RequestTesting(unittest.TestCase):
 class MainTesting(unittest.TestCase):
 
     @mock.patch('requests.request')
-    @mock.patch('notify_smseagle.create_request')
+    @mock.patch('notify_smseagle.make_request')
     def test_main_ok(self, mock_req, mock_data):
         mock_req.return_value = 200
         mock_data.return_value = ""
 
         args = commandline(['--url', 'http://localhost', '-t', 'token', '-r', '+4912345', '-m' 'msg', '--insecure'])
-        req = create_request(args, json.dumps({"to": ["+4912345"], "text": "msg"}))
+        req = make_request(args, json.dumps({"to": ["+4912345"], "text": "msg"}))
 
         self.assertEqual(req, "")
 
-    @mock.patch('notify_smseagle.create_request')
+    @mock.patch('notify_smseagle.make_request')
     def test_main_url_error(self, mock_data):
         mock_data.side_effect = Exception("FAIL")
 

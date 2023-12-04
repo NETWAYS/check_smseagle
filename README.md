@@ -1,7 +1,7 @@
 # check_smseagle
 
-check_smseagle checks the GSM signal strength of an [SMSEagle](http://www.smseagle.eu/) device.  
-Only works with the recommended API v2. For API v1 please use the version 1.0.0.
+check_smseagle checks the GSM signal strength of an [SMSEagle](http://www.smseagle.eu/) device.
+Currently only works with the recommended API v2. For API v1 please use the version 1.0.0.
 
 ## Installation
 
@@ -16,7 +16,8 @@ Alternatively you can install with pip:
 ## Usage
 
 ```
-check_smseagle.py [-h] -u URL -t TOKEN [-M MODEM] [-w WARNING] [-c CRITICAL] [-T TIMEOUT] [--insecure]
+check_smseagle.py [-h] -u URL -t TOKEN [-M MODEM] [-w WARNING] [-c CRITICAL] [-T TIMEOUT]
+                  [--insecure]
 
 check_smseagle (Version: 2.0.0)
 
@@ -28,7 +29,8 @@ options:
   -M MODEM, --modem MODEM
                         Modem ID
   -w WARNING, --warning WARNING
-                        Warning if the GSM signal strength is less than PERCENT. Must be greater then --critical
+                        Warning if the GSM signal strength is less than PERCENT.
+                        Must be greater than --critical
   -c CRITICAL, --critical CRITICAL
                         Critical if the GSM signal strength is less than PERCENT
   -T TIMEOUT, --timeout TIMEOUT
@@ -38,7 +40,7 @@ options:
 
 ## Example
 
-Let's say your device listens at 192.168.144.120:443 and there is an api token `qqgfHAtBuja8liwcOafzXzm4WHcWYOb`.
+For a device at `192.168.144.120:443` with this API token `qqgfHAtBuja8liwcOafzXzm4WHcWYOb`.
 
 To monitor the GSM signal strength you would use the plugin like this:
 
@@ -46,16 +48,12 @@ To monitor the GSM signal strength you would use the plugin like this:
 check_smseagle -u "https://192.168.144.120" -t "qqgfHAtBuja8liwcOafzXzm4WHcWYOb"
 ```
 
-You can increase the warning and critical thresholds by adding the following options:
-
-```
--w 20 -c 10
-```
+You can increase the warning and critical thresholds by adding the following options: `-w 20 -c 10`
 
 # notify_smseagle
 
-notify_smseagle sends SMS via an [SMSEagle](http://www.smseagle.eu/) device.  
-Only works with the recommended API v2. For API v1 please use the version 1.0.0.
+notify_smseagle sends SMS via an [SMSEagle](http://www.smseagle.eu/) device.
+Currently only works with the recommended API v2. For API v1 please use the version 1.0.0.
 
 ## Installation
 
@@ -70,7 +68,8 @@ Alternatively you can install with pip:
 ## Usage
 
 ```
-notify_smseagle.py [-h] -u URL -r RECIPIENT -m MESSAGE -t TOKEN [-T TIMEOUT] [--insecure]
+notify_smseagle.py [-h] -u URL -r RECIPIENT -m MESSAGE -t TOKEN [-T TIMEOUT]
+                   [--insecure]
 
 notify_smseagle (Version: 2.0.0)
 
@@ -82,7 +81,7 @@ options:
   -m MESSAGE, --message MESSAGE
                         The message to send
   -t TOKEN, --token TOKEN
-                        User api token for authentication
+                        User API token for authentication
   -T TIMEOUT, --timeout TIMEOUT
                         Seconds before connection times out (default 10)
   --insecure            Allow insecure SSL connections (default False)
@@ -90,12 +89,13 @@ options:
 
 ## Example
 
-Let's say your device listens at 192.168.144.120:443 and there is an api token `qqgfHAtBuja8liwcOafzXzm4WHcWYOb`.
+For a device at `192.168.144.120:443` with this API token `qqgfHAtBuja8liwcOafzXzm4WHcWYOb`.
 
-To send an SMS you would use notify_smseagle like this:
+To send an SMS you would use the plugin like this:
 
 ```
-notify_smseagle -u "https://192.168.144.120" -t "qqgfHAtBuja8liwcOafzXzm4WHcWYOb" -r "+49123456789" -m "nothingtoreadhere"
+notify_smseagle -u "https://192.168.144.120" -t "qqgfHAtBuja8liwcOafzXzm4WHcWYOb" \
+                -r "+49123456789" -m "nothingtoreadhere"
 ```
 
 # smseagle_ack.cgi
