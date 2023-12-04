@@ -1,5 +1,8 @@
 .PHONY: lint-check test-check coverage-check lint-notify test-notify coverage-notify
 
+test:   test-check test-notify
+lint:   lint-check lint-notify
+
 lint-check:
 	python -m pylint check_smseagle.py
 
