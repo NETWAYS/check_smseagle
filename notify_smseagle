@@ -92,16 +92,17 @@ def main(args):
     try:
         data = prepare_data(args)
     except Exception as exc: # pylint: disable=broad-except
-        print("Could not prepare json data.", exc)
+        print("Error: Could not prepare json data.", exc)
         return 3
+
     try:
         response = make_request(args, data)
     except Exception as exc: # pylint: disable=broad-except
-        print("Could not connect to SMS Eagle and send message.", exc)
+        print("Error: Could not connect to SMS Eagle and send message.", exc)
         return 3
 
     if not response.status_code == 200:
-        print("Could not send message.", response)
+        print("Error: Could not send message.", response)
         return 2
 
     return 0
@@ -112,5 +113,5 @@ if __name__ == '__main__':  # pragma: no cover
         ARGS = commandline(sys.argv[1:])
         sys.exit(main(ARGS))
     except Exception as e:  # pylint: disable=broad-except
-        print("Error", e)
+        print("Error: ", e)
         sys.exit(3)
