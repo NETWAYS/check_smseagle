@@ -23,9 +23,9 @@ check_smseagle (Version: 2.0.0)
 
 options:
   -h, --help            show this help message and exit
-  -u URL, --url URL     URL to check
+  -u URL, --url URL     Hostname of the device (CHECK_SMSEAGLE_API_URL)
   -t TOKEN, --token TOKEN
-                        User api token for authentication
+                        API token for authentication (CHECK_SMSEAGLE_API_TOKEN)
   -M MODEM, --modem MODEM
                         Modem ID
   -w WARNING, --warning WARNING
@@ -37,6 +37,8 @@ options:
                         Seconds before connection times out (default 10)
   --insecure            Allow insecure SSL connections (default False)
 ```
+
+Various flags can be set with environment variables, refer to the help to see which flags.
 
 ## Example
 
@@ -75,17 +77,19 @@ notify_smseagle (Version: 2.0.0)
 
 options:
   -h, --help            show this help message and exit
-  -u URL, --url URL     URL to send the message to
-  -r RECIPIENT, --recipient RECIPIENT
-                        Recipient for the message
-  -m MESSAGE, --message MESSAGE
-                        The message to send
+  -u URL, --url URL     Hostname of the device (CHECK_SMSEAGLE_API_URL)
   -t TOKEN, --token TOKEN
-                        User API token for authentication
+                        API token for authentication (CHECK_SMSEAGLE_API_TOKEN)
+  -r RECIPIENT, --recipient RECIPIENT
+                        Recipient for the message (required)
+  -m MESSAGE, --message MESSAGE
+                        The message to send (required)
   -T TIMEOUT, --timeout TIMEOUT
                         Seconds before connection times out (default 10)
   --insecure            Allow insecure SSL connections (default False)
 ```
+
+Various flags can be set with environment variables, refer to the help to see which flags.
 
 ## Example
 

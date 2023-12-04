@@ -3,6 +3,7 @@
 import unittest
 import unittest.mock as mock
 import sys
+import os
 
 import check_smseagle
 
@@ -30,6 +31,17 @@ class CLITesting(unittest.TestCase):
 
         with self.assertRaises(SystemExit) as context:
             commandline(['-u', 'localhost', '-c', '10', '-w', '5'])
+
+    def test_commandline_fromenv(self):
+        os.environ['CHECK_SMSEAGLE_API_URL'] = 'GEH'
+        os.environ['CHECK_SMSEAGLE_API_TOKEN'] = 'HEIM'
+
+        actual = commandline([])
+        self.assertEqual(actual.url, 'GEH')
+        self.assertEqual(actual.token, 'HEIM')
+
+        os.unsetenv('CHECK_SMSEAGLE_API_URL')
+        os.unsetenv('CHECK_SMSEAGLE_API_TOKEN')
 
 
 class UtilTesting(unittest.TestCase):
