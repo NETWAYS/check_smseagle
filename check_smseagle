@@ -38,7 +38,7 @@ CRITICAL = 2
 UNKNOWN = 3
 
 
-def generate_output(status='UNKNOWN', description=None, perfdata=None):
+def generate_output(status='[UNKNOWN]', description=None, perfdata=None):
     """
     Generate plugin data output with status and perfdata
     """
@@ -83,11 +83,11 @@ def commandline(args):
     args = parser.parse_args(args)
 
     if args.warning == args.critical:
-        print("UNKNOWN - The critical and warning threshold must not be identical")
+        print("[UNKNOWN] - The critical and warning thresholds must not be identical")
         sys.exit(3)
 
     if args.critical > args.warning:
-        print("UNKNOWN - The critical threshold must not be greater than the warning")
+        print("[UNKNOWN] - The critical threshold must not be greater than the warning")
         sys.exit(3)
 
     return args
@@ -155,28 +155,28 @@ def main(args):
         response = make_request(args, url)
 
     except Exception as data_exc:  # pylint: disable=broad-except
-        print("UNKNOWN - Couldn't fetch the GSM signal strength because of an error", data_exc)
+        print("[UNKNOWN] - Couldn't fetch the GSM signal strength because of an error", data_exc)
         return UNKNOWN
 
     try:
         strength = get_strength(response)
     except ValueError as parse_exc:
-        print("UNKNOWN - Couldn't evaluate the GSM signal strength", parse_exc)
+        print("[UNKNOWN] - Couldn't evaluate the GSM signal strength", parse_exc)
         return UNKNOWN
 
     if strength == -1:
-        generate_output("CRITICAL", 'GSM modem is disconnected from GSM network')
+        generate_output("[CRITICAL]", 'GSM modem is disconnected from GSM network')
         return CRITICAL
 
     if strength < args.critical:
         exit_code = CRITICAL
-        status = "CRITICAL"
+        status = "[CRITICAL]"
     elif strength < args.warning:
         exit_code = WARNING
-        status = "WARNING"
+        status = "[WARNING]"
     else:
         exit_code = OK
-        status = "OK"
+        status = "[OK]"
 
     generate_output(status, f"GSM signal strength: {strength}%",
                     {'gsm_signal_strenght': f"{strength}%;{args.warning}:;{args.critical}:;;"})
@@ -191,5 +191,5 @@ if __name__ == '__main__':  # pragma: no cover
         # Re-throw the exception
         raise sys.exc_info()[1].with_traceback(sys.exc_info()[2])  # pylint: disable=raise-missing-from
     except:
-        print("UNKNOWN - Error: %s" % (str(sys.exc_info()[1])))
+        print("[UNKNOWN] - Error: %s" % (str(sys.exc_info()[1])))
         sys.exit(3)

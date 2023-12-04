@@ -36,7 +36,11 @@ class UtilTesting(unittest.TestCase):
 
     @mock.patch('builtins.print')
     def test_output(self, mock_print):
-        generate_output()
+        actual = generate_output()
+        mock_print.assert_called_with("[UNKNOWN]")
+
+        actual = generate_output(status="OK", description="foo", perfdata={'perf': '1'})
+        mock_print.assert_called_with("OK - foo|perf=1")
 
     def test_prepare_url(self):
         args = commandline(['--url', 'http://localhost', '--token', 'token'])
