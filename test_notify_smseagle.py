@@ -3,6 +3,7 @@ import json
 import unittest
 import unittest.mock as mock
 import sys
+import os
 
 sys.path.append('..')
 
@@ -18,6 +19,17 @@ class CLITesting(unittest.TestCase):
         actual = commandline(['-u', 'http://localhost', '-t', 'token', '-r', 'recipient', '-m' 'msg'])
         self.assertEqual(actual.url, 'http://localhost')
         self.assertFalse(actual.insecure)
+
+    def test_commandline_fromenv(self):
+        os.environ['CHECK_SMSEAGLE_API_URL'] = 'GEH'
+        os.environ['CHECK_SMSEAGLE_API_TOKEN'] = 'HEIM'
+
+        actual = commandline(['-r', 'recipient', '-m' 'msg'])
+        self.assertEqual(actual.url, 'GEH')
+        self.assertEqual(actual.token, 'HEIM')
+
+        os.unsetenv('CHECK_SMSEAGLE_API_URL')
+        os.unsetenv('CHECK_SMSEAGLE_API_TOKEN')
 
 
 class DataTesting(unittest.TestCase):

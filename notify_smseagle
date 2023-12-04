@@ -21,6 +21,7 @@
 from argparse import ArgumentParser
 from urllib.parse import urljoin
 import json
+import os
 import sys
 import requests
 import urllib3
@@ -32,16 +33,21 @@ def commandline(args):
     """
     Defines the CLI Parser and parses the arguments
     """
+    def environ_or_required(key):
+        return ({'default': os.environ.get(key)} if os.environ.get(key) else {'required': True})
+
     parser = ArgumentParser(description="notify_smseagle (Version: %s)" % (__version__))
 
-    parser.add_argument('-u', '--url', required=True,
-                        help="URL to send the message to")
+    parser.add_argument("-u", "--url",
+                        **environ_or_required('CHECK_SMSEAGLE_API_URL'),
+                        help="Hostname of the device (CHECK_SMSEAGLE_API_URL)")
+    parser.add_argument('-t', '--token',
+                        **environ_or_required('CHECK_SMSEAGLE_API_TOKEN'),
+                        help="API token for authentication (CHECK_SMSEAGLE_API_TOKEN)")
     parser.add_argument('-r', '--recipient', required=True,
                         help="Recipient for the message")
     parser.add_argument('-m', '--message', required=True,
                         help="The message to send")
-    parser.add_argument("-t", "--token", required=True,
-                        help="User api token for authentication")
     parser.add_argument('-T', '--timeout', help='Seconds before connection times out (default 10)',
                         default=10,
                         type=int)

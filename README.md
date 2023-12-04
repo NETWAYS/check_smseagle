@@ -38,6 +38,8 @@ options:
   --insecure            Allow insecure SSL connections (default False)
 ```
 
+Various flags can be set with environment variables, refer to the help to see which flags.
+
 ## Example
 
 For a device at `192.168.144.120:443` with this API token `qqgfHAtBuja8liwcOafzXzm4WHcWYOb`.
@@ -86,6 +88,8 @@ options:
                         Seconds before connection times out (default 10)
   --insecure            Allow insecure SSL connections (default False)
 ```
+
+Various flags can be set with environment variables, refer to the help to see which flags.
 
 ## Example
 
