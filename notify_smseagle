@@ -62,7 +62,7 @@ def prepare_data(args):
     })
 
 
-def create_request(args, data):
+def make_request(args, data):
     """
     Prepare and submits request with given arguments.
     """
@@ -95,7 +95,7 @@ def main(args):
         print("Could not prepare json data.", exc)
         return 3
     try:
-        response = create_request(args, data)
+        response = make_request(args, data)
     except Exception as exc: # pylint: disable=broad-except
         print("Could not connect to SMS Eagle and send message.", exc)
         return 3

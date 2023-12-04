@@ -9,7 +9,7 @@ import check_smseagle
 sys.path.append('..')
 
 from check_smseagle import commandline
-from check_smseagle import create_request
+from check_smseagle import make_request
 from check_smseagle import prepare_url
 from check_smseagle import generate_output
 from check_smseagle import main
@@ -56,13 +56,13 @@ class UtilTesting(unittest.TestCase):
 class RequestTesting(unittest.TestCase):
 
     @mock.patch('requests.request')
-    def test_create_request(self, mock_req):
+    def test_make_request(self, mock_req):
         r = mock.MagicMock()
         r.status_code = 200
         mock_req.return_value = r
 
         args = commandline(['--url', 'https://localhost', '--token', 'token123'])
-        actual = create_request(args, "https://localhost")
+        actual = make_request(args, "https://localhost")
 
         mock_req.assert_called_with(method='GET',
                                     headers={'accept': 'application/json', 'access-token': 'token123'},
@@ -71,13 +71,13 @@ class RequestTesting(unittest.TestCase):
                                     timeout=10)
 
     @mock.patch('requests.request')
-    def test_create_request_insecure(self, mock_req):
+    def test_make_request_insecure(self, mock_req):
         r = mock.MagicMock()
         r.status_code = 200
         mock_req.return_value = r
 
         args = commandline(['--url', 'https://localhost', '--token', 'token123', '--insecure'])
-        actual = create_request(args, "https://localhost")
+        actual = make_request(args, "https://localhost")
 
         mock_req.assert_called_with(method='GET',
                                     headers={'accept': 'application/json', 'access-token': 'token123'},
@@ -94,12 +94,12 @@ class RequestTesting(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             args = commandline(['--url', 'http://localhost', '--token', 'token'])
-            create_request(args, 'http://localhost')
+            make_request(args, 'http://localhost')
 
 
 class MainTesting(unittest.TestCase):
 
-    @mock.patch('check_smseagle.create_request')
+    @mock.patch('check_smseagle.make_request')
     def test_main_ok(self, mock_req):
         # Mock object for HTTP Response
         r = mock.MagicMock()
@@ -114,7 +114,7 @@ class MainTesting(unittest.TestCase):
         actual = main(args)
         self.assertEqual(actual, 0)
 
-    @mock.patch('check_smseagle.create_request')
+    @mock.patch('check_smseagle.make_request')
     def test_main_warn(self, mock_req):
         r = mock.MagicMock()
         r.json.return_value = """
@@ -126,7 +126,7 @@ class MainTesting(unittest.TestCase):
         actual = main(args)
         self.assertEqual(actual, 1)
 
-    @mock.patch('check_smseagle.create_request')
+    @mock.patch('check_smseagle.make_request')
     def test_main_critical(self, mock_req):
         r = mock.MagicMock()
         r.json.return_value = """
@@ -139,7 +139,7 @@ class MainTesting(unittest.TestCase):
         actual = main(args)
         self.assertEqual(actual, 2)
 
-    @mock.patch('check_smseagle.create_request')
+    @mock.patch('check_smseagle.make_request')
     def test_main_unknown(self, mock_req):
         r = mock.MagicMock()
         r.json.return_value = """

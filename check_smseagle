@@ -93,7 +93,7 @@ def commandline(args):
     return args
 
 
-def create_request(args, url):
+def make_request(args, url):
     """
     Prepare and submits request with given arguments.
     Returns Response.
@@ -152,7 +152,7 @@ def main(args):
     url = prepare_url(args)
 
     try:
-        response = create_request(args, url)
+        response = make_request(args, url)
 
     except Exception as data_exc:  # pylint: disable=broad-except
         print("UNKNOWN - Couldn't fetch the GSM signal strength because of an error", data_exc)
