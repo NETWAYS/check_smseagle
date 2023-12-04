@@ -45,9 +45,9 @@ def commandline(args):
                         **environ_or_required('CHECK_SMSEAGLE_API_TOKEN'),
                         help="API token for authentication (CHECK_SMSEAGLE_API_TOKEN)")
     parser.add_argument('-r', '--recipient', required=True,
-                        help="Recipient for the message")
+                        help="Recipient for the message (required)")
     parser.add_argument('-m', '--message', required=True,
-                        help="The message to send")
+                        help="The message to send (required)")
     parser.add_argument('-T', '--timeout', help='Seconds before connection times out (default 10)',
                         default=10,
                         type=int)
