@@ -65,11 +65,11 @@ def commandline(args):
     parser.add_argument("-u", "--url", required=True,
                         help="URL to check")
     parser.add_argument('-t', '--token', required=True,
-                        help="User api token for authentication")
+                        help="User API token for authentication")
     parser.add_argument("-M", "--modem",
                         help="Modem ID")
     parser.add_argument("-w", "--warning", default=10, type=int,
-                        help="Warning if the GSM signal strength is less than PERCENT. Must be greater then --critical")
+                        help="Warning if the GSM signal strength is less than PERCENT. Must be greater than --critical")
     parser.add_argument("-c", "--critical", default=5, type=int,
                         help="Critical if the GSM signal strength is less than PERCENT")
     parser.add_argument("-T", "--timeout", help="Seconds before connection times out (default 10)",
