@@ -4,6 +4,7 @@ import unittest
 import unittest.mock as mock
 import sys
 import os
+import json
 
 import check_smseagle
 
@@ -120,9 +121,9 @@ class MainTesting(unittest.TestCase):
         # Mock object for HTTP Response
         r = mock.MagicMock()
         # Mocking the JSON method on the response
-        r.json.return_value = """
+        r.json.return_value = json.loads("""
         {"modem_no":1,"signal_strength":66}
-        """
+        """)
         # Set mock HTTP Reposonse as mock_request return value
         mock_req.return_value = r
 
@@ -133,9 +134,9 @@ class MainTesting(unittest.TestCase):
     @mock.patch('check_smseagle.make_request')
     def test_main_warn(self, mock_req):
         r = mock.MagicMock()
-        r.json.return_value = """
+        r.json.return_value = json.loads("""
         {"modem_no":1,"signal_strength":9}
-        """
+        """)
         mock_req.return_value = r
 
         args = commandline(['-u', 'http://localhost', '-t', 'token', '-M', '1'])
@@ -145,9 +146,9 @@ class MainTesting(unittest.TestCase):
     @mock.patch('check_smseagle.make_request')
     def test_main_critical(self, mock_req):
         r = mock.MagicMock()
-        r.json.return_value = """
+        r.json.return_value = json.loads("""
         {"modem_no":1,"signal_strength":1}
-        """
+        """)
         mock_req.return_value = r
 
         args = commandline(['-u', 'http://localhost', '-t', 'token', '-M', '1'])
@@ -158,9 +159,7 @@ class MainTesting(unittest.TestCase):
     @mock.patch('check_smseagle.make_request')
     def test_main_unknown(self, mock_req):
         r = mock.MagicMock()
-        r.json.return_value = """
-        ¯\_ (ツ)_/¯
-        """
+        r.json.side_effect=KeyError('OHNO')
         mock_req.return_value = r
 
         args = commandline(['-u', 'http://localhost', '-t', 'token', '-M', '1'])

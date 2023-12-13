@@ -165,7 +165,7 @@ def main(args):
 
     try:
         strength = get_strength(response)
-    except ValueError as parse_exc:
+    except Exception as parse_exc: # pylint: disable=broad-except
         print("[UNKNOWN] - Couldn't evaluate the GSM signal strength", parse_exc)
         return UNKNOWN
 
