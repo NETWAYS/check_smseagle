@@ -19,7 +19,6 @@
 
 from argparse import ArgumentParser
 from urllib.parse import urljoin
-import json
 import os
 import sys
 import urllib3
@@ -150,7 +149,7 @@ def get_strength(response):
     """
     Parse response and returns signal_strength of given modem
     """
-    data = json.loads(response.json())
+    data = response.json()
     return data["signal_strength"]
 
 
@@ -166,7 +165,7 @@ def main(args):
 
     try:
         strength = get_strength(response)
-    except ValueError as parse_exc:
+    except Exception as parse_exc: # pylint: disable=broad-except
         print("[UNKNOWN] - Couldn't evaluate the GSM signal strength", parse_exc)
         return UNKNOWN
 
