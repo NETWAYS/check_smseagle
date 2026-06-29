@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 # Copyright (C) 2016  NETWAYS GmbH, https://netways.de
 #
-# Author: Alexander A. Klimov <alexander.klimov@netways.de>
-#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or

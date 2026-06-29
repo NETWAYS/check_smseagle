@@ -110,7 +110,7 @@ It parses incoming SMSs and acknowledges host/service problems if an SMS request
 
 ## Requirements
 
-Python 2.6 or 2.7
+Python 3
 
 ## Configuration
 
