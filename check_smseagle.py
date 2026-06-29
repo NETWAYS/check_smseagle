@@ -22,7 +22,7 @@ import sys
 import urllib3
 import requests
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 # Return code level
 # 0 - OK       - The plugin was able to check the service and it appeared to be functioning properly
