@@ -1,8 +1,5 @@
-#!/usr/bin/python2
-
+#!/usr/bin/python3
 # Copyright (C) 2016  NETWAYS GmbH, https://netways.de
-#
-# Author: Alexander A. Klimov <alexander.klimov@netways.de>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,16 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-
-from __future__ import print_function
-
 import os
 import re
 import sys
+
 from cgi import FieldStorage
-from ConfigParser import NoSectionError, NoOptionError, RawConfigParser
+from configparser import NoSectionError, NoOptionError, RawConfigParser
 from datetime import datetime
-from itertools import cycle, izip
+from itertools import cycle
 from syslog import LOG_PID, openlog, syslog
 from time import time
 
@@ -73,7 +68,7 @@ def safe_eq(known, unknown):
     """
 
     result = int(len(known) != len(unknown))
-    for (x, y) in izip(unknown, cycle(known)):
+    for (x, y) in zip(unknown, cycle(known)):
         result |= ord(x) ^ ord(y)
     return not result
 
@@ -86,7 +81,7 @@ try:
         cfg.readfp(f)
 
     raw_data = FieldStorage()
-    data = dict(((k, raw_data.getfirst(k)) for k in raw_data.keys()))
+    data = dict(((k, raw_data.getfirst(k)) for k in list(raw_data.keys())))
 
     apikey = cfg.get('security', 'apikey')
     if apikey is not None:

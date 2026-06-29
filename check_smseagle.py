@@ -1,1 +1,198 @@
-check_smseagle
+#!/usr/bin/python3
+# Copyright (C) 2016  NETWAYS GmbH, https://netways.de
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
+from argparse import ArgumentParser
+from urllib.parse import urljoin
+import os
+import sys
+import urllib3
+import requests
+
+__version__ = "2.0.1"
+
+# Return code level
+# 0 - OK       - The plugin was able to check the service and it appeared to be functioning properly
+# 1 - WARNING  - The plugin was able to check the service, but it appeared to be above some "warning"
+#                threshold or did not appear to be working properly
+# 2 - CRITICAL - The plugin detected that either the service was not running or it was above some "critical" threshold
+# 3 - UNKNOWN  - Invalid command line arguments were supplied to the plugin or low-level failures
+OK = 0
+WARNING = 1
+CRITICAL = 2
+UNKNOWN = 3
+
+
+def generate_output(status='[UNKNOWN]', description=None, perfdata=None):
+    """
+    Generate plugin data output with status and perfdata
+    """
+
+    pluginoutput = str(status)
+
+    if description:
+        pluginoutput += ' - ' + str(description)
+
+    # Perfdata we explicitly extracted from the data
+    if perfdata:
+        pluginoutput += '|' + ' '.join(
+            [key.lower().replace(" ", "_").replace(",", "") + '=' + str(value) for key, value in perfdata.items()])
+
+    print(pluginoutput)
+
+
+def commandline(args):
+    """
+    Parse commandline arguments.
+    """
+    def environ_or_required(key):
+        return ({'default': os.environ.get(key)} if os.environ.get(key) else {'required': True})
+
+    parser = ArgumentParser(description="check_smseagle (Version: %s)" % (__version__))
+
+    parser.add_argument("-u", "--url",
+                        **environ_or_required('CHECK_SMSEAGLE_API_URL'),
+                        help="Hostname of the device (CHECK_SMSEAGLE_API_URL)")
+    parser.add_argument('-t', '--token',
+                        **environ_or_required('CHECK_SMSEAGLE_API_TOKEN'),
+                        help="API token for authentication (CHECK_SMSEAGLE_API_TOKEN)")
+    parser.add_argument("-M", "--modem",
+                        help="Modem ID")
+    parser.add_argument("-w", "--warning", default=10, type=int,
+                        help="Warning if the GSM signal strength is less than PERCENT. Must be greater than --critical")
+    parser.add_argument("-c", "--critical", default=5, type=int,
+                        help="Critical if the GSM signal strength is less than PERCENT")
+    parser.add_argument("-T", "--timeout", help="Seconds before connection times out (default 10)",
+                        default=10,
+                        type=int)
+    parser.add_argument("--insecure",
+                        action="store_true",
+                        default=False,
+                        help="Allow insecure SSL connections (default False)")
+
+    args = parser.parse_args(args)
+
+    if args.warning == args.critical:
+        print("[UNKNOWN] - The critical and warning thresholds must not be identical")
+        sys.exit(3)
+
+    if args.critical > args.warning:
+        print("[UNKNOWN] - The critical threshold must not be greater than the warning")
+        sys.exit(3)
+
+    return args
+
+
+def make_request(args, url):
+    """
+    Prepare and submits request with given arguments.
+    Returns Response.
+
+    Request should be similar to:
+    {
+        "modem_no": 2,
+        "signal_strength": 57
+    }
+    """
+
+    # Compress warnings if insecure and change request verification
+    verify = True
+    if args.insecure:
+        urllib3.disable_warnings()
+        verify = False
+
+    response = requests.request(
+        method="GET",
+        headers={
+            "accept": "application/json",
+            "access-token": args.token
+        },
+        verify=verify,
+        url=url,
+        timeout=args.timeout
+    )
+
+    if response.status_code != 200:
+        raise RuntimeError("Could not get response")
+
+    return response
+
+
+def prepare_url(args):
+    """
+    Prepare url for the request
+    """
+    base_url = urljoin(args.url, "/api/v2/modem/signal")
+    if args.modem is not None:
+        url = base_url + "/" + args.modem
+        return url
+
+    return base_url
+
+
+def get_strength(response):
+    """
+    Parse response and returns signal_strength of given modem
+    """
+    data = response.json()
+    return data["signal_strength"]
+
+
+def main(args):
+    url = prepare_url(args)
+
+    try:
+        response = make_request(args, url)
+
+    except Exception as data_exc:  # pylint: disable=broad-except
+        print("[UNKNOWN] - Couldn't fetch the GSM signal strength because of an error", data_exc)
+        return UNKNOWN
+
+    try:
+        strength = get_strength(response)
+    except Exception as parse_exc: # pylint: disable=broad-except
+        print("[UNKNOWN] - Couldn't evaluate the GSM signal strength", parse_exc)
+        return UNKNOWN
+
+    if strength == -1:
+        generate_output("[CRITICAL]", 'GSM modem is disconnected from GSM network')
+        return CRITICAL
+
+    if strength < args.critical:
+        exit_code = CRITICAL
+        status = "[CRITICAL]"
+    elif strength < args.warning:
+        exit_code = WARNING
+        status = "[WARNING]"
+    else:
+        exit_code = OK
+        status = "[OK]"
+
+    generate_output(status, f"GSM signal strength: {strength}%",
+                    {'gsm_signal_strenght': f"{strength}%;{args.warning}:;{args.critical}:;;"})
+    return exit_code
+
+
+if __name__ == '__main__':  # pragma: no cover
+    try:
+        ARGS = commandline(sys.argv[1:])
+        sys.exit(main(ARGS))
+    except SystemExit:
+        # Re-throw the exception
+        raise sys.exc_info()[1].with_traceback(sys.exc_info()[2])  # pylint: disable=raise-missing-from
+    except:
+        print("[UNKNOWN] - Error: %s" % (str(sys.exc_info()[1])))
+        sys.exit(3)
